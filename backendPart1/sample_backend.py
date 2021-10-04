@@ -2,6 +2,7 @@ from flask import Flask
 from flask import jsonify
 from flask import request
 from flask_cors import CORS
+import uuid
 
 app = Flask(__name__)
 CORS(app)
@@ -55,9 +56,10 @@ def get_users():
       return users
    elif request.method == 'POST':
       userToAdd = request.get_json()
+      userToAdd['id'] = uuid.uuid1()
       users['users_list'].append(userToAdd)
-      resp = jsonify(success=True)
-      #resp.status_code = 200 #optionally, you can always set a response code. 
+      resp = jsonify(userToAdd)
+      resp.status_code = 201 #optionally, you can always set a response code. 
       # 200 is the default code for a normal response
       return resp
    elif request.method == 'DELETE':
@@ -68,13 +70,24 @@ def get_users():
       # 200 is the default code for a normal response
       return resp
 
-@app.route('/users/<id>')
+@app.route('/users/<id>', methods=['GET', 'DELETE'])
 def get_user(id):
-   if id :
+   if request.method == 'GET':
       for user in users['users_list']:
         if user['id'] == id:
            return user
       return ({})
+   
+   elif request.method == 'DELETE':
+      for user in users['users_list']:
+        if user['id'] == id:
+           users['users_list'].remove(user)
+           resp = jsonify(success=True)
+           resp.status_code = 204
+           return resp
+      resp = jsonify({"error 404": "resource not found"})
+      resp.status_code = 404
+      return resp
    return users
 
 @app.route('/users')
